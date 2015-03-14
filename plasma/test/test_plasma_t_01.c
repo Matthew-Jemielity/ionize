@@ -20,8 +20,9 @@
 
 #define BUFSIZE 10
 
-uint8_t buf[ BUFSIZE ]; /* inited to zeores */
-pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+static uint8_t buf[ BUFSIZE ]; /* inited to zeores */
+static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct plasma_state
 {
@@ -79,6 +80,7 @@ static plasma_status_t unlock( plasma_t * const self )
     {
         return EINVAL;
     }
+    ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_unlock( &rwlock );
     if( 0 == result )
     {
@@ -86,6 +88,7 @@ static plasma_status_t unlock( plasma_t * const self )
         self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
         self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
     }
+    ( void ) pthread_mutex_unlock( &mutex );
     return result;
 }
 
@@ -122,6 +125,7 @@ static plasma_read_result_t tryrlock( plasma_t * const self )
             { NULL, 0 }
         };
     }
+    ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_tryrdlock( &rwlock );
     plasma_read_result_t const res = ( plasma_read_result_t )
         {
@@ -130,11 +134,13 @@ static plasma_read_result_t tryrlock( plasma_t * const self )
         };
     if( 0 != result )
     {
+        ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
+    ( void ) pthread_mutex_unlock( &mutex );
     return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
 }
 
@@ -151,6 +157,7 @@ static plasma_read_result_t rlock( plasma_t * const self )
             { NULL, 0 }
         };
     }
+    ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_rdlock( &rwlock );
     plasma_read_result_t const res = ( plasma_read_result_t )
         {
@@ -159,11 +166,13 @@ static plasma_read_result_t rlock( plasma_t * const self )
         };
     if( 0 != result )
     {
+        ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
+    ( void ) pthread_mutex_unlock( &mutex );
     return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
 }
 
@@ -180,6 +189,7 @@ static plasma_write_result_t trywlock( plasma_t * const self )
             { NULL, 0 }
         };
     }
+    ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_trywrlock( &rwlock );
     plasma_write_result_t const res = ( plasma_write_result_t )
         {
@@ -188,11 +198,13 @@ static plasma_write_result_t trywlock( plasma_t * const self )
         };
     if( 0 != result )
     {
+        ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
+    ( void ) pthread_mutex_unlock( &mutex );
     return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
 }
 
@@ -209,6 +221,7 @@ static plasma_write_result_t wlock( plasma_t * const self )
             { NULL, 0 }
         };
     }
+    ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_wrlock( &rwlock );
     plasma_write_result_t const res = ( plasma_write_result_t )
         {
@@ -217,11 +230,13 @@ static plasma_write_result_t wlock( plasma_t * const self )
         };
     if( 0 != result )
     {
+        ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
+    ( void ) pthread_mutex_unlock( &mutex );
     return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
 }
 
