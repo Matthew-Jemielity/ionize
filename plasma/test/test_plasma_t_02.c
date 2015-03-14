@@ -387,7 +387,7 @@ int main( int argc, char ** args )
     pp = &p;
 
     srand( time( NULL ));
-    for( uint32_t i = 0U; i < 100000000U; ++i )
+    for( uint32_t i = 0U; i < 10000000U; ++i )
     {
         size_t test = rand() % testsize;
         ( tests[ test ] )();
