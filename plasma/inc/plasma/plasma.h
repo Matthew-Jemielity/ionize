@@ -30,7 +30,7 @@ typedef struct plasma plasma_t;
  * \return Zero on success, else error code.
  */
 typedef plasma_status_t ( * plasma_allocate_func_t )(
-    plasma_t * const restrict eelf,
+    plasma_t * const restrict self,
     size_t const * const restrict sizes,
     size_t const length
 );
@@ -50,6 +50,7 @@ plasma_read_result_t;
  * \brief Locks first available buffer for reading and returns it.
  * \param self Pointer to plasma_t object on which we'll operate.
  * \return Structure containing error code and read-only buffer descriptor.
+ * \warning Using the buffer after unlocking it is undefined.
  */
 typedef plasma_read_result_t
 ( * plasma_read_lock_func_t )( plasma_t * const self );
@@ -69,6 +70,7 @@ plasma_write_result_t;
  * \brief Locks first available buffer for writing and returns it.
  * \param self Pointer to plasma_t object on which we'll operate.
  * \return Structure containing error code and writable buffer descriptor.
+ * \warning Using the buffer after unlocking it is undefined.
  */
 typedef plasma_write_result_t
 ( * plasma_write_lock_func_t )( plasma_t * const self );
@@ -90,6 +92,7 @@ typedef plasma_status_t ( * plasma_unlock_func_t )( plasma_t * const self );
  * - blocking - if there is lock contention and no other buffer is available
  *              then the lock operation will wait;
  * - non-blocking - in above case the operation will return with error.
+ * Changing the mode will only work for new lock requests.
  */
 typedef plasma_status_t ( * plasma_blocking_func_t )(
     plasma_t * const self,
