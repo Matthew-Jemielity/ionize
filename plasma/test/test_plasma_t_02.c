@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <plasma/error.h>
 #include <plasma/macros.h>
 #include <plasma/plasma.h>
 #include <pthread.h>
@@ -254,11 +255,11 @@ static plasma_uid_t uid( plasma_t * const self )
     };
 }
 
-typedef void ( * auto_func_t )( void );
+typedef plasma_status_t ( * auto_func_t )( void );
 
 static plasma_t * pp;
 
-void autotest_allocate( void )
+plasma_status_t autotest_allocate( void )
 {
     switch( rand() % 2 )
     {
@@ -266,35 +267,39 @@ void autotest_allocate( void )
         {
             size_t const a = rand();
             size_t const b = rand();
+            plasma_status_t const result =
+                pp->allocate( pp, ( size_t const [] ) { a }, b );
             printf(
                 "[%s false (%lu, %lu)] status = %d\n",
                 __func__,
                 a,
                 b,
-                pp->allocate( pp, ( size_t const [] ) { a }, b )
+                result
             );
-            break;
+            return result;
         }
         case 1:
         {
+            plasma_status_t const result = 
+                pp->allocate( pp, ( size_t[] ) { BUFSIZE }, 1U );
             printf(
                 "[%s true] status = %d\n",
                 __func__,
-                pp->allocate( pp, ( size_t[] ) { BUFSIZE }, 1U )
+                result
             );
-            break;
+            return result;
         }
         default:
         {
             printf( "[%s ???]\n", __func__ );
-            break;
+            return EINVAL;
         }
     }
 }
 
-void autotest_read( void )
+plasma_status_t autotest_read( void )
 {
-    plasma_read_result_t result = pp->read_lock( pp );
+    plasma_read_result_t const result = pp->read_lock( pp );
     printf(
         "[%s] status = %d, buf = %p, size = %lu\n",
         __func__,
@@ -302,11 +307,12 @@ void autotest_read( void )
         result.buf.buf,
         result.buf.size
     );
+    return result.status;
 }
 
-void autotest_write( void )
+plasma_status_t autotest_write( void )
 {
-    plasma_write_result_t result = pp->write_lock( pp );
+    plasma_write_result_t const result = pp->write_lock( pp );
     printf(
         "[%s] status = %d, buf = %p, size = %lu\n",
         __func__,
@@ -314,56 +320,62 @@ void autotest_write( void )
         result.buf.buf,
         result.buf.size
     );
+    return result.status;
 }
 
-void autotest_unlock( void )
+plasma_status_t autotest_unlock( void )
 {
+    plasma_status_t const result = pp->unlock( pp );
     printf(
         "[%s] status = %d\n",
         __func__,
-        pp->unlock( pp )
+        result
     );
+    return result;
 }
 
-void autotest_blocking( void )
+plasma_status_t autotest_blocking( void )
 {
     switch( rand() % 2 )
     {
         case 0:
         {
+            plasma_status_t const result = pp->blocking( pp, false );
             printf(
                 "[%s false] status = %d\n",
                 __func__,
-                pp->blocking( pp, false )
+                result
             );
-            break;
+            return result;
         }
         case 1:
         {
+            plasma_status_t const result = pp->blocking( pp, true );
             printf(
                 "[%s true] status = %d\n",
                 __func__,
-                pp->blocking( pp, true )
+                result
             );
-            break;
+            return result;
         }
         default:
         {
             printf( "[%s ???]\n", __func__ );
-            break;
+            return EINVAL;
         }
     }
 }
 
-void autotest_uid( void )
+plasma_status_t autotest_uid( void )
 {
-    plasma_uid_t result = pp->uid( pp );
+    plasma_uid_t const result = pp->uid( pp );
     printf(
         "[%s]: status = %d, uid = %"PRIu32"\n",
         __func__,
         result.status,
         result.uid
     );
+    return result.status;
 }
 
 static auto_func_t const tests[] = {
@@ -387,12 +399,43 @@ int main( int argc, char ** args )
     pp = &p;
 
     srand( time( NULL ));
+    uint32_t zeroes = 0;
+    uint32_t einvals = 0;
+    uint32_t others = 0;
     for( uint32_t i = 0U; i < 10000000U; ++i )
     {
         size_t test = rand() % testsize;
-        ( tests[ test ] )();
+        plasma_status_t const result = ( tests[ test ] )();
+        switch( result )
+        {
+            case 0:
+            {
+                ++zeroes;
+                break;
+            }
+            case EINVAL:
+            {
+                ++einvals;
+                break;
+            }
+            default:
+            {
+                ++others;
+                break;
+            }
+        }
     }
 
     pp = NULL;
+
+    fprintf(
+        stderr,
+        "results:\n\tsuccesses = %"PRIu32"\n\teinvals = %"PRIu32"\n"
+        "\tothers (investigate) = %"PRIu32"\n",
+        zeroes,
+        einvals,
+        others
+    );
+
     return 0;
 }
