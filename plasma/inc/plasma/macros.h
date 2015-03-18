@@ -5,15 +5,10 @@
  * \file        macros.h
  * \version     1.0
  *
- * Contains various utility macros used globally through the project.
+ * Contains various utility macros used through the plasma project.
  **/
 #ifndef PLASMA_MACROS_H__
 # define PLASMA_MACROS_H__
-
-/**
- * \brief Specifies that variable is not used in a compiler-friendly way.
- */
-# define UNUSED( VAR ) (( void ) ( VAR ))
 
 /**
  * \defgroup PP_NARG Group of macros for getting number of arguments

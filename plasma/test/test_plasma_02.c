@@ -1,8 +1,8 @@
 /**
  * \author      Mateusz Jemielity matthew.jemielity@gmail.com
- * \brief       Mock implementation of plasma_t structure functions.
+ * \brief       Mock implementation of plasma structure functions.
  * \date        03/08/2015 07:26:10 AM
- * \file        test_plasma_t_01.c
+ * \file        test_plasma_01.c
  * \version     1.0
  *
  *
@@ -12,7 +12,8 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <plasma/error.h>
+#include <ionize/error.h>
+#include <ionize/universal.h>
 #include <plasma/macros.h>
 #include <plasma/plasma.h>
 #include <pthread.h>
@@ -29,13 +30,13 @@ static uint8_t buf[ BUFSIZE ]; /* inited to zeores */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct plasma_state
+struct plasma_state_struct
 {
     bool blocking;
 };
 
-static plasma_status_t allocate(
-    plasma_t * const restrict self,
+static ionize_status allocate(
+    plasma * const restrict self,
     size_t const * const restrict sizes,
     size_t const length
 )
@@ -53,7 +54,7 @@ static plasma_status_t allocate(
     return 0;
 }
 
-static plasma_status_t blocking( plasma_t * const self, bool const state )
+static ionize_status blocking( plasma * const self, bool const state )
 {
     if(
         ( NULL == self )
@@ -66,17 +67,17 @@ static plasma_status_t blocking( plasma_t * const self, bool const state )
     return 0;
 }
 
-static plasma_status_t dummy_unlock( plasma_t * const self )
+static ionize_status dummy_unlock( plasma * const self )
 {
     UNUSED( self );
     return EINVAL;
 }
 
-static plasma_read_result_t rlock( plasma_t * const self );
-static plasma_write_result_t wlock( plasma_t * const self );
-static plasma_read_result_t tryrlock( plasma_t * const self );
-static plasma_write_result_t trywlock( plasma_t * const self );
-static plasma_status_t unlock( plasma_t * const self )
+static plasma_read rlock( plasma * const self );
+static plasma_write wlock( plasma * const self );
+static plasma_read tryrlock( plasma * const self );
+static plasma_write trywlock( plasma * const self );
+static ionize_status unlock( plasma * const self )
 {
     if(
         ( NULL == self )
@@ -85,7 +86,7 @@ static plasma_status_t unlock( plasma_t * const self )
     {
         return EINVAL;
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_unlock( &rwlock );
     if( 0 == result )
     {
@@ -93,173 +94,173 @@ static plasma_status_t unlock( plasma_t * const self )
         self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
         self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return result;
 }
 
-static plasma_read_result_t dummy_rlock( plasma_t * const self )
+static plasma_read dummy_rlock( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_read_result_t )
+    return ( plasma_read )
     {
         EINVAL,
         { NULL, 0 }
     };
 }
 
-static plasma_write_result_t dummy_wlock( plasma_t * const self )
+static plasma_write dummy_wlock( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_write_result_t )
+    return ( plasma_write )
     {
         EINVAL,
         { NULL, 0 }
     };
 }
 
-static plasma_read_result_t tryrlock( plasma_t * const self )
+static plasma_read tryrlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_read_result_t )
+        return ( plasma_read )
         {
             EINVAL,
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_tryrdlock( &rwlock );
-    plasma_read_result_t const res = ( plasma_read_result_t )
+    plasma_read const res = ( plasma_read )
         {
             result,
             { NULL, 0 }
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
+    UNUSED( pthread_mutex_unlock( &mutex ));
+    return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_read_result_t rlock( plasma_t * const self )
+static plasma_read rlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_read_result_t )
+        return ( plasma_read )
         {
             EINVAL,
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_rdlock( &rwlock );
-    plasma_read_result_t const res = ( plasma_read_result_t )
+    plasma_read const res = ( plasma_read )
         {
             result,
             { NULL, 0 }
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
+    UNUSED( pthread_mutex_unlock( &mutex ));
+    return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_write_result_t trywlock( plasma_t * const self )
+static plasma_write trywlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_write_result_t )
+        return ( plasma_write )
         {
             EINVAL,
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_trywrlock( &rwlock );
-    plasma_write_result_t const res = ( plasma_write_result_t )
+    plasma_write const res = ( plasma_write )
         {
             result,
             { NULL, 0 }
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
+    UNUSED( pthread_mutex_unlock( &mutex ));
+    return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_write_result_t wlock( plasma_t * const self )
+static plasma_write wlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_write_result_t )
+        return ( plasma_write )
         {
             EINVAL,
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_wrlock( &rwlock );
-    plasma_write_result_t const res = ( plasma_write_result_t )
+    plasma_write const res = ( plasma_write )
         {
             result,
             { NULL, 0 }
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->read_lock = dummy_rlock;
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
+    UNUSED( pthread_mutex_unlock( &mutex ));
+    return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_uid_t uid( plasma_t * const self )
+static plasma_uid uid( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_uid_t )
+    return ( plasma_uid )
     {
         0,
         0
     };
 }
 
-typedef plasma_status_t ( * auto_func_t )( void );
+typedef ionize_status ( * auto_func )( void );
 
-static plasma_t * pp;
+static plasma * pp;
 
-plasma_status_t autotest_allocate( void )
+ionize_status autotest_allocate( void )
 {
     switch( rand() % 2 )
     {
@@ -267,7 +268,7 @@ plasma_status_t autotest_allocate( void )
         {
             size_t const a = rand();
             size_t const b = rand();
-            plasma_status_t const result =
+            ionize_status const result =
                 pp->allocate( pp, ( size_t const [] ) { a }, b );
             printf(
                 "[%s false (%lu, %lu)] status = %d\n",
@@ -280,7 +281,7 @@ plasma_status_t autotest_allocate( void )
         }
         case 1:
         {
-            plasma_status_t const result = 
+            ionize_status const result = 
                 pp->allocate( pp, ( size_t[] ) { BUFSIZE }, 1U );
             printf(
                 "[%s true] status = %d\n",
@@ -297,35 +298,35 @@ plasma_status_t autotest_allocate( void )
     }
 }
 
-plasma_status_t autotest_read( void )
+ionize_status autotest_read( void )
 {
-    plasma_read_result_t const result = pp->read_lock( pp );
+    plasma_read const result = pp->read_lock( pp );
     printf(
-        "[%s] status = %d, buf = %p, size = %lu\n",
+        "[%s] status = %d, data = %p, size = %lu\n",
         __func__,
         result.status,
-        result.buf.buf,
+        result.buf.data,
         result.buf.size
     );
     return result.status;
 }
 
-plasma_status_t autotest_write( void )
+ionize_status autotest_write( void )
 {
-    plasma_write_result_t const result = pp->write_lock( pp );
+    plasma_write const result = pp->write_lock( pp );
     printf(
-        "[%s] status = %d, buf = %p, size = %lu\n",
+        "[%s] status = %d, data = %p, size = %lu\n",
         __func__,
         result.status,
-        result.buf.buf,
+        result.buf.data,
         result.buf.size
     );
     return result.status;
 }
 
-plasma_status_t autotest_unlock( void )
+ionize_status autotest_unlock( void )
 {
-    plasma_status_t const result = pp->unlock( pp );
+    ionize_status const result = pp->unlock( pp );
     printf(
         "[%s] status = %d\n",
         __func__,
@@ -334,13 +335,13 @@ plasma_status_t autotest_unlock( void )
     return result;
 }
 
-plasma_status_t autotest_blocking( void )
+ionize_status autotest_blocking( void )
 {
     switch( rand() % 2 )
     {
         case 0:
         {
-            plasma_status_t const result = pp->blocking( pp, false );
+            ionize_status const result = pp->blocking( pp, false );
             printf(
                 "[%s false] status = %d\n",
                 __func__,
@@ -350,7 +351,7 @@ plasma_status_t autotest_blocking( void )
         }
         case 1:
         {
-            plasma_status_t const result = pp->blocking( pp, true );
+            ionize_status const result = pp->blocking( pp, true );
             printf(
                 "[%s true] status = %d\n",
                 __func__,
@@ -366,9 +367,9 @@ plasma_status_t autotest_blocking( void )
     }
 }
 
-plasma_status_t autotest_uid( void )
+ionize_status autotest_uid( void )
 {
-    plasma_uid_t const result = pp->uid( pp );
+    plasma_uid const result = pp->uid( pp );
     printf(
         "[%s]: status = %d, uid = %"PRIu32"\n",
         __func__,
@@ -378,7 +379,7 @@ plasma_status_t autotest_uid( void )
     return result.status;
 }
 
-static auto_func_t const tests[] = {
+static auto_func const tests[] = {
     autotest_allocate,
     autotest_read,
     autotest_write,
@@ -386,15 +387,15 @@ static auto_func_t const tests[] = {
     autotest_blocking,
     autotest_uid
 };
-static size_t const testsize = sizeof( tests ) / sizeof( auto_func_t );
+static size_t const testsize = sizeof( tests ) / sizeof( auto_func );
 
 int main( int argc, char ** args )
 {
     UNUSED( argc );
     UNUSED( args );
 
-    plasma_state_t state = { true };
-    plasma_t p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
+    plasma_state state = { true };
+    plasma p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
 
     pp = &p;
 
@@ -405,7 +406,7 @@ int main( int argc, char ** args )
     for( uint32_t i = 0U; i < 10000000U; ++i )
     {
         size_t test = rand() % testsize;
-        plasma_status_t const result = ( tests[ test ] )();
+        ionize_status const result = ( tests[ test ] )();
         switch( result )
         {
             case 0:

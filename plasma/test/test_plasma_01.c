@@ -1,8 +1,8 @@
 /**
  * \author      Mateusz Jemielity matthew.jemielity@gmail.com
- * \brief       Mock implementation of plasma_t structure functions.
+ * \brief       Mock implementation of plasma structure functions.
  * \date        03/08/2015 07:26:10 AM
- * \file        test_plasma_t_01.c
+ * \file        test_plasma_01.c
  * \version     1.0
  *
  *
@@ -10,6 +10,7 @@
 #define _XOPEN_SOURCE 500
 
 #include <assert.h>
+#include <ionize/universal.h>
 #include <plasma/macros.h>
 #include <plasma/plasma.h>
 #include <pthread.h>
@@ -24,13 +25,13 @@ static uint8_t buf[ BUFSIZE ]; /* inited to zeores */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct plasma_state
+struct plasma_state_struct
 {
     bool blocking;
 };
 
-static plasma_status_t allocate(
-    plasma_t * const restrict self,
+static ionize_status allocate(
+    plasma * const restrict self,
     size_t const * const restrict sizes,
     size_t const length
 )
@@ -48,7 +49,7 @@ static plasma_status_t allocate(
     return 0;
 }
 
-static plasma_status_t blocking( plasma_t * const self, bool const state )
+static ionize_status blocking( plasma * const self, bool const state )
 {
     if(
         ( NULL == self )
@@ -61,17 +62,17 @@ static plasma_status_t blocking( plasma_t * const self, bool const state )
     return 0;
 }
 
-static plasma_status_t dummy_unlock( plasma_t * const self )
+static ionize_status dummy_unlock( plasma * const self )
 {
     UNUSED( self );
     return EINVAL;
 }
 
-static plasma_read_result_t rlock( plasma_t * const self );
-static plasma_write_result_t wlock( plasma_t * const self );
-static plasma_read_result_t tryrlock( plasma_t * const self );
-static plasma_write_result_t trywlock( plasma_t * const self );
-static plasma_status_t unlock( plasma_t * const self )
+static plasma_read rlock( plasma * const self );
+static plasma_write wlock( plasma * const self );
+static plasma_read tryrlock( plasma * const self );
+static plasma_write trywlock( plasma * const self );
+static ionize_status unlock( plasma * const self )
 {
     if(
         ( NULL == self )
@@ -92,34 +93,34 @@ static plasma_status_t unlock( plasma_t * const self )
     return result;
 }
 
-static plasma_read_result_t dummy_rlock( plasma_t * const self )
+static plasma_read dummy_rlock( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_read_result_t )
+    return ( plasma_read )
     {
         EINVAL,
         { NULL, 0 }
     };
 }
 
-static plasma_write_result_t dummy_wlock( plasma_t * const self )
+static plasma_write dummy_wlock( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_write_result_t )
+    return ( plasma_write )
     {
         EINVAL,
         { NULL, 0 }
     };
 }
 
-static plasma_read_result_t tryrlock( plasma_t * const self )
+static plasma_read tryrlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_read_result_t )
+        return ( plasma_read )
         {
             EINVAL,
             { NULL, 0 }
@@ -127,7 +128,7 @@ static plasma_read_result_t tryrlock( plasma_t * const self )
     }
     ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_tryrdlock( &rwlock );
-    plasma_read_result_t const res = ( plasma_read_result_t )
+    plasma_read const res = ( plasma_read )
         {
             result,
             { NULL, 0 }
@@ -141,17 +142,17 @@ static plasma_read_result_t tryrlock( plasma_t * const self )
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
     ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
+    return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_read_result_t rlock( plasma_t * const self )
+static plasma_read rlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_read_result_t )
+        return ( plasma_read )
         {
             EINVAL,
             { NULL, 0 }
@@ -159,7 +160,7 @@ static plasma_read_result_t rlock( plasma_t * const self )
     }
     ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_rdlock( &rwlock );
-    plasma_read_result_t const res = ( plasma_read_result_t )
+    plasma_read const res = ( plasma_read )
         {
             result,
             { NULL, 0 }
@@ -173,17 +174,17 @@ static plasma_read_result_t rlock( plasma_t * const self )
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
     ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_read_result_t ) { 0, { buf, BUFSIZE } };
+    return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_write_result_t trywlock( plasma_t * const self )
+static plasma_write trywlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_write_result_t )
+        return ( plasma_write )
         {
             EINVAL,
             { NULL, 0 }
@@ -191,7 +192,7 @@ static plasma_write_result_t trywlock( plasma_t * const self )
     }
     ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_trywrlock( &rwlock );
-    plasma_write_result_t const res = ( plasma_write_result_t )
+    plasma_write const res = ( plasma_write )
         {
             result,
             { NULL, 0 }
@@ -205,17 +206,17 @@ static plasma_write_result_t trywlock( plasma_t * const self )
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
     ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
+    return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_write_result_t wlock( plasma_t * const self )
+static plasma_write wlock( plasma * const self )
 {
     if(
         ( NULL == self )
         || ( NULL == self->state )
     )
     {
-        return ( plasma_write_result_t )
+        return ( plasma_write )
         {
             EINVAL,
             { NULL, 0 }
@@ -223,7 +224,7 @@ static plasma_write_result_t wlock( plasma_t * const self )
     }
     ( void ) pthread_mutex_lock( &mutex );
     int const result = pthread_rwlock_wrlock( &rwlock );
-    plasma_write_result_t const res = ( plasma_write_result_t )
+    plasma_write const res = ( plasma_write )
         {
             result,
             { NULL, 0 }
@@ -237,13 +238,13 @@ static plasma_write_result_t wlock( plasma_t * const self )
     self->write_lock = dummy_wlock;
     self->unlock = unlock;
     ( void ) pthread_mutex_unlock( &mutex );
-    return ( plasma_write_result_t ) { 0, { buf, BUFSIZE } };
+    return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 
-static plasma_uid_t uid( plasma_t * const self )
+static plasma_uid uid( plasma * const self )
 {
     UNUSED( self );
-    return ( plasma_uid_t )
+    return ( plasma_uid )
     {
         0,
         0
@@ -255,8 +256,8 @@ int main( int argc, char ** args )
     UNUSED( argc );
     UNUSED( args );
 
-    plasma_state_t state = { true };
-    plasma_t p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
+    plasma_state state = { true };
+    plasma p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
 
     assert( 0 != p.allocate( &p, ( size_t[] ) { 2, 3 }, 2 ));
     assert( 0 != p.allocate( NULL, NULL, 0 ));
@@ -266,23 +267,23 @@ int main( int argc, char ** args )
     assert( 0 != p.unlock( &p ));
     assert( dummy_unlock == p.unlock );
 
-    plasma_write_result_t wr;
+    plasma_write wr;
     assert( 0 != p.write_lock( NULL ).status );
     assert( 0 == ( wr = p.write_lock( &p )).status );
     assert( BUFSIZE == wr.buf.size );
-    (( char * )( wr.buf.buf ))[ 1 ] = 42;
+    (( char * )( wr.buf.data ))[ 1 ] = 42;
     assert( unlock == p.unlock );
     assert( 0 != p.unlock( NULL ));
     assert( 0 == p.unlock( &p ));
     assert( dummy_unlock == p.unlock );
 
-    plasma_read_result_t rr;
+    plasma_read rr;
     assert( 0 != p.read_lock( NULL ).status );
     assert( 0 == ( rr = p.read_lock( &p )).status );
     assert( dummy_rlock == p.read_lock );
     assert( dummy_wlock == p.write_lock );
     assert( BUFSIZE == rr.buf.size );
-    assert( 42 == (( char * )( rr.buf.buf ))[ 1 ] );
+    assert( 42 == (( char * )( rr.buf.data ))[ 1 ] );
     assert( 0 == p.unlock( &p ));
     assert( 0 == p.blocking( &p, false ));
     assert( false == state.blocking );

@@ -5,9 +5,9 @@
  * \file        test_macros_unused_01.c
  * \version     1.0
  *
- * Test should be compiled with -std=c99 -Wall -Wextra -pedantic -Werror
+ * Test should be compiled with -std=c11 -Wall -Wextra -pedantic -Werror
  **/
-#include <plasma/macros.h>
+#include <ionize/universal.h>
 
 int main( int argc, char ** args )
 {

@@ -8,6 +8,7 @@
  *
  **/
 #include <assert.h>
+#include <ionize/universal.h>
 #include <plasma/macros.h>
 
 int main( int argc, char ** args )
