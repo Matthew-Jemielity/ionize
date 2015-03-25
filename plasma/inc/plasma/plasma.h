@@ -21,6 +21,9 @@
 # include <stddef.h> /* size_t */
 # include <stdint.h> /* uint32_t */
 
+/**
+ * \brief Forward declaration of the plasma structure.
+ */
 typedef struct plasma_struct plasma;
 /**
  * \brief Requests allocation of memory buffers with given sizes.
@@ -39,16 +42,23 @@ typedef ionize_status ( * plasma_allocate_func )(
     size_t const * const restrict sizes,
     size_t const length
 );
+/**
+ * \brief Representation of read-only memory buffer.
+ */
 typedef struct
 {
     void const * data; /** Pointer to buffer memory */
     size_t size; /** Size of buffer memory */
 }
 plasma_read_only;
+/**
+ * \brief Representation of type returned by read lock method.
+ * \see plasma_read_only
+ */
 typedef struct
 {
-    ionize_status status;
-    plasma_read_only buf;
+    ionize_status status; /** Zero on success, else error code. */
+    plasma_read_only buf; /** Read-only memory buffer */
 }
 plasma_read;
 /**
@@ -56,6 +66,7 @@ plasma_read;
  * \param self Pointer to plasma object on which we'll operate.
  * \return Structure containing error code and read-only buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
+ * \see plasma_read
  *
  * Depending on the blocking behaviour this method will either block
  * until a buffer is available or return with status EAGAIN. Note that
@@ -64,16 +75,23 @@ plasma_read;
  */
 typedef plasma_read
 ( * plasma_read_lock_func )( plasma * const self );
+/**
+ * \brief Representation of writable memory buffer.
+ */
 typedef struct
 {
     void * data; /** Pointer to buffer memory */
     size_t size; /** Size of buffer memory */
 }
 plasma_read_write;
+/**
+ * \brief Representation of type returned by write lock method.
+ * \see plasma_read_write
+ */
 typedef struct
 {
-    ionize_status status;
-    plasma_read_write buf;
+    ionize_status status; /** Zero on success, else error code. */
+    plasma_read_write buf; /** Writable memory buffer */
 }
 plasma_write;
 /**
@@ -81,6 +99,7 @@ plasma_write;
  * \param self Pointer to plasma object on which we'll operate.
  * \return Structure containing error code and writable buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
+ * \see plasma_write
  *
  * Depending on the blocking behaviour this method will either block
  * until a buffer is available or return with status EAGAIN. Note that
@@ -118,16 +137,20 @@ typedef ionize_status ( * plasma_blocking_func )(
     plasma * const self,
     bool const state
 );
+/**
+ * \brief Representation of type returned by uid getter method.
+ */
 typedef struct
 {
-    ionize_status status;
-    uint32_t uid;
+    ionize_status status; /** Zero on success, else error code. */
+    uint32_t uid; /** Unique circular memory queue identifier. */
 }
 plasma_uid;
 /**
  * \brief Gets unique identifier of the buffer circular queue.
  * \param self Pointer to plasma object on which we'll operate.
  * \return Structure with error code and 32-bit unique identifier.
+ * \see plasma_uid
  *
  * If two plasma objects return the same uid, then their states are
  * synchronized. They point to and operate on the same circular queue
@@ -141,6 +164,16 @@ typedef plasma_uid ( * plasma_uid_func )( plasma * const self );
  */
 typedef struct plasma_state_struct plasma_state;
 
+/**
+ * \brief Representation of the plasma object.
+ * \see plasma_state
+ * \see plasma_allocate_func
+ * \see plasma_read_lock_func
+ * \see plasma_write_lock_func
+ * \see plasma_unlock_func
+ * \see plasma_blocking_func
+ * \see plasma_uid_func
+ */
 struct plasma_struct
 {
     plasma_state * state;
