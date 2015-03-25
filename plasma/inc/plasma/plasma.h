@@ -28,6 +28,9 @@ typedef struct plasma_struct plasma;
  * \param sizes Array of buffer sizes.
  * \param length Length of sizes array.
  * \return Zero on success, else error code.
+ *
+ * Send a request for allocation to appropriate service. Allocated
+ * space is added to the back of circular queue managed by the service.
  */
 typedef ionize_status ( * plasma_allocate_func )(
     plasma * const restrict self,
