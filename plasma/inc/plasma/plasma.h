@@ -31,6 +31,8 @@ typedef struct plasma_struct plasma;
  *
  * Send a request for allocation to appropriate service. Allocated
  * space is added to the back of circular queue managed by the service.
+ * This method blocks until service returns status of the allocation
+ * to the client.
  */
 typedef ionize_status ( * plasma_allocate_func )(
     plasma * const restrict self,
@@ -54,6 +56,11 @@ plasma_read;
  * \param self Pointer to plasma object on which we'll operate.
  * \return Structure containing error code and read-only buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
+ *
+ * Depending on the blocking behaviour this method will either block
+ * until a buffer is available or return with status EAGAIN. Note that
+ * the method will always block for the amount of time needed for backend
+ * service to communicate with the client.
  */
 typedef plasma_read
 ( * plasma_read_lock_func )( plasma * const self );
@@ -74,6 +81,11 @@ plasma_write;
  * \param self Pointer to plasma object on which we'll operate.
  * \return Structure containing error code and writable buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
+ *
+ * Depending on the blocking behaviour this method will either block
+ * until a buffer is available or return with status EAGAIN. Note that
+ * the method will always block for the amount of time needed for backend
+ * service to communicate with the client.
  */
 typedef plasma_write
 ( * plasma_write_lock_func )( plasma * const self );
@@ -81,13 +93,16 @@ typedef plasma_write
  * \brief Unlocks previously locked buffer.
  * \param self Pointer to plasma object on which we'll operate.
  * \return Zero on success, else error code.
+ *
+ * This method will block for amount of time needed for backend service to
+ * communicate with the client.
  */
 typedef ionize_status ( * plasma_unlock_func )( plasma * const self );
 /**
  * \brief Sets mode of operation for locks.
  * \param self Pointer to plasma object on which we'll operate.
  * \param state New setting for mode of operation for locks.
- * \return Zero on success, erro code otherwise.
+ * \return Zero on success, error code otherwise.
  * \warning Accessing buffer returned by read_lock or write_lock after unlock
  *          has been called is an undefined behavior.
  *
@@ -96,6 +111,8 @@ typedef ionize_status ( * plasma_unlock_func )( plasma * const self );
  *              then the lock operation will wait;
  * - non-blocking - in above case the operation will return with error.
  * Changing the mode will only work for new lock requests.
+ * This is a method local to the client, it doesn't communicate with backend
+ * service.
  */
 typedef ionize_status ( * plasma_blocking_func )(
     plasma * const self,
@@ -115,6 +132,8 @@ plasma_uid;
  * If two plasma objects return the same uid, then their states are
  * synchronized. They point to and operate on the same circular queue
  * of memory buffers.
+ * This method will block for the amount of time needed for backend service
+ * to communicate with the client.
  */
 typedef plasma_uid ( * plasma_uid_func )( plasma * const self );
 /**
