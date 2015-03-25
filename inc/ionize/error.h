@@ -15,6 +15,9 @@
 # define IONIZE_ERROR_H__
 # include <errno.h>
 
+/**
+ * \brief Zero on success, else errno-compatible positive integer.
+ */
 typedef int ionize_status;
 
 #endif /* IONIZE_ERROR_H__ */

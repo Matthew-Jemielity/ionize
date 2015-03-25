@@ -15,6 +15,7 @@
  *
  * Those macros get the number of arguments passed to a variadic macro.
  * Basic usage is like: PP_NARG( a, b, c ), which will return (in this case) 3.
+ * PP_NARG() will return 0. Macro can be used for more preprocessor magic.
  * Implementation gleaned from the wizards at Stack Overflow:
  * stackoverflow.com/questions/11317474/macro-to-count-number-of-arguments
  */
