@@ -153,10 +153,11 @@ plasma_uid;
  * \see plasma_uid
  *
  * If two plasma objects return the same uid, then their states are
- * synchronized. They point to and operate on the same circular queue
- * of memory buffers.
- * This method will block for the amount of time needed for backend service
- * to communicate with the client.
+ * synchronized, i.e. they point to and operate on same circular queue
+ * of memory buffers. The state of buffer locks (blocking or not) is
+ * local to the plasma object instance and not synchronized.
+ * This method will not contact the backend service, it is local to
+ * the client.
  */
 typedef plasma_uid ( * plasma_uid_func )( plasma * const self );
 /**
