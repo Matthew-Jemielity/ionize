@@ -26,11 +26,34 @@
  */
 typedef struct plasma_struct plasma;
 /**
+ * \brief properties required from the memory buffer
+ *
+ * This structure has different meaning when used in allocation of memory
+ * or locking a buffer for use.
+ * When used in allocation, the service will try to allocate memory starting
+ * from maximum given and, if that fails, move into smaller and smaller sizes
+ * until minimum is reached. The step is defined by alignment. The allocated
+ * buffer is aligned to size specified by the alignment field. If requested
+ * alignment cannot be obtained, the allocation will fail.
+ * When used for locking a buffer for use, the returned buffer (if possible)
+ * will always have a size between minimum and maximum specified and alignment
+ * as requested. If no such buffer is available, the server will return an
+ * appropriate error.
+ */
+typedef struct
+{
+    size_t minimum; /** Minimum size of the buffer in bytes. */
+    size_t maximum; /** Maximum size of the buffer in bytes. */
+    size_t alignment; /** Alignment of the buffer. */
+}
+plasma_properties;
+/**
  * \brief Requests allocation of memory buffers with given sizes.
  * \param self Pointer to plasma object on which we'll operate.
- * \param sizes Array of buffer sizes.
- * \param length Length of sizes array.
+ * \param properties Array of buffer properties.
+ * \param length Length of sizes array, that many buffer will be allocated.
  * \return Zero on success, else error code.
+ * \see plasma_properties
  *
  * Send a request for allocation to appropriate service. Allocated
  * space is added to the back of circular queue managed by the service.
@@ -39,7 +62,7 @@ typedef struct plasma_struct plasma;
  */
 typedef ionize_status ( * plasma_allocate_func )(
     plasma * const restrict self,
-    size_t const * const restrict sizes,
+    plasma_properties const * const restrict properties,
     size_t const length
 );
 /**
@@ -64,17 +87,21 @@ plasma_read;
 /**
  * \brief Locks first available buffer for reading and returns it.
  * \param self Pointer to plasma object on which we'll operate.
+ * \param requested Properties of the buffer we want to acquire.
  * \return Structure containing error code and read-only buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
  * \see plasma_read
+ * \see plasma_properties
  *
  * Depending on the blocking behaviour this method will either block
  * until a buffer is available or return with status EAGAIN. Note that
  * the method will always block for the amount of time needed for backend
  * service to communicate with the client.
  */
-typedef plasma_read
-( * plasma_read_lock_func )( plasma * const self );
+typedef plasma_read ( * plasma_read_lock_func )(
+    plasma * const self,
+    plasma_properties const requested
+);
 /**
  * \brief Representation of writable memory buffer.
  */
@@ -97,17 +124,21 @@ plasma_write;
 /**
  * \brief Locks first available buffer for writing and returns it.
  * \param self Pointer to plasma object on which we'll operate.
+ * \param requested Properties of the buffer we want to acquire.
  * \return Structure containing error code and writable buffer descriptor.
  * \warning Using the buffer after unlocking it is undefined.
  * \see plasma_write
+ * \see plasma_properties
  *
  * Depending on the blocking behaviour this method will either block
  * until a buffer is available or return with status EAGAIN. Note that
  * the method will always block for the amount of time needed for backend
  * service to communicate with the client.
  */
-typedef plasma_write
-( * plasma_write_lock_func )( plasma * const self );
+typedef plasma_write ( * plasma_write_lock_func )(
+    plasma * const self,
+    plasma_properties const requested
+);
 /**
  * \brief Unlocks previously locked buffer.
  * \param self Pointer to plasma object on which we'll operate.
