@@ -484,7 +484,7 @@ ionize_status autotest_write( void )
             size_t const b = rand();
             size_t const c = rand();
             plasma_properties const random = { a, b, c };
-            plasma_read const result = pp->read_lock( pp, random );
+            plasma_write const result = pp->write_lock( pp, random );
             printf(
                 "[%s false (%lu, %lu, %lu), %sblocking] "
                 "status = %d, data = %p, size = %lu\n",
@@ -502,7 +502,7 @@ ionize_status autotest_write( void )
         case 1:
         {
             plasma_properties const ok = { BUFSIZE, BUFSIZE, 1U };
-            plasma_read const result = pp->read_lock( pp, ok );
+            plasma_write const result = pp->write_lock( pp, ok );
             printf(
                 "[%s true, %sblocking] status = %d, data = %p, size = %lu\n",
                 __func__,
