@@ -44,7 +44,7 @@ typedef struct
 {
     size_t minimum; /** Minimum size of the buffer in bytes. */
     size_t maximum; /** Maximum size of the buffer in bytes. */
-    size_t alignment; /** Alignment of the buffer. */
+    size_t alignment; /** Alignment of the buffer, in bytes. */
 }
 plasma_properties;
 /**
