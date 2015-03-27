@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 #define BUFSIZE 10
-#define EDUMMY 0xc0ffeeee
+#define EDUMMY 0xC0FFEEEE
 
 static uint8_t buf[ BUFSIZE ]; /* inited to zeores */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
@@ -330,6 +330,21 @@ int main( int argc, char ** args )
     plasma_state state = { true };
     plasma p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
 
+    plasma_properties const invalid = { 0U, 0U, 0U };
+    plasma_properties const valid = { BUFSIZE, BUFSIZE, 1U };
+
+    assert( 0 == p.blocking( &p, false ));
+    assert( 0 == p.write_lock( &p, valid ).status );
+    assert( EINVAL == p.read_lock( &p, invalid ).status );
+    assert( 0 == p.unlock( &p ));
+    assert( 0 == p.write_lock( &p, valid ).status );
+    assert( 0 == p.unlock( &p ));
+    assert( EINVAL == p.read_lock( &p, invalid ).status );
+    assert( EINVAL == p.unlock( &p ));
+    assert( 0 == p.write_lock( &p, valid ).status );
+    assert( EBUSY == p.write_lock( &p, valid ).status );
+    assert( 0 == p.unlock( &p ));
+
     assert( 0 != p.allocate( &p, ( plasma_properties[] ) {
                 { 2U, 3U, 4U },
                 { BUFSIZE, BUFSIZE - 1, 0U }
@@ -342,9 +357,6 @@ int main( int argc, char ** args )
 
     assert( 0 != p.unlock( &p ));
     assert( dummy_unlock == p.unlock );
-
-    plasma_properties const invalid = { 0U, 0U, 0U };
-    plasma_properties const valid = { BUFSIZE, BUFSIZE, 1U };
 
     plasma_write wr;
     assert( 0 != p.write_lock( NULL, valid ).status );

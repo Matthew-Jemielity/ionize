@@ -628,12 +628,9 @@ ionize_status autotest_uid( void )
 }
 
 static auto_func const tests[] = {
-    autotest_allocate,
     autotest_read,
     autotest_write,
     autotest_unlock,
-    autotest_blocking,
-    autotest_uid
 };
 static size_t const testsize = sizeof( tests ) / sizeof( auto_func );
 
@@ -653,6 +650,9 @@ int main( int argc, char ** args )
     uint32_t ebusys = 0;
     uint32_t edummies = 0;
     uint32_t others = 0;
+
+    assert( 0 == p.blocking( &p, false ));
+
     for( uint32_t i = 0U; i < 10000000U; ++i )
     {
         size_t test = rand() % testsize;
