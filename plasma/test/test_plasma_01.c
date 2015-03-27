@@ -22,7 +22,7 @@
 #define BUFSIZE 10
 #define EDUMMY 0xC0FFEEEE
 
-static uint8_t buf[ BUFSIZE ]; /* inited to zeores */
+static uint8_t buf[ BUFSIZE ]; /* inited to zeroes */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
