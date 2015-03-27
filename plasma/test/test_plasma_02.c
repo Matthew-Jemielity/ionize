@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h> /* sync */
 
 #define BUFSIZE 10
 #define EDUMMY 0xC0FFEEEE
@@ -657,6 +658,7 @@ int main( int argc, char ** args )
     {
         size_t test = rand() % testsize;
         ionize_status const result = ( tests[ test ] )();
+        sync();
         switch( result )
         {
             case 0:
