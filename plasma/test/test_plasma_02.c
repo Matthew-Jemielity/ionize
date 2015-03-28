@@ -25,7 +25,7 @@
 #include <time.h>
 
 #define BUFSIZE 10
-#define EDUMMY 0xC0FFEEEE
+#define EDUMMY (( int ) 0xC0FFEEEE )
 
 static uint8_t buf[ BUFSIZE ]; /* inited to zeroes */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;

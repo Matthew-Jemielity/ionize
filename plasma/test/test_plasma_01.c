@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 #define BUFSIZE 10
-#define EDUMMY 0xC0FFEEEE
+#define EDUMMY (( int ) 0xC0FFEEEE)
 
 static uint8_t buf[ BUFSIZE ]; /* inited to zeroes */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
@@ -421,7 +421,7 @@ int main( int argc, char ** args )
 
     assert( 0 == p.blocking( &p, false ));
     assert( dummy_rlock == p.read_lock );
-    assert( (( int ) EDUMMY ) == p.read_lock( &p, valid ).status );
+    assert( EDUMMY == p.read_lock( &p, valid ).status );
     assert( 0 == p.blocking( &p, true ));
 
     assert( 0 == p.unlock( &p ));
@@ -481,7 +481,7 @@ int main( int argc, char ** args )
     assert( trywlock == p.write_lock );
     assert( 0 == p.blocking( &p, true ));
     assert( dummy_wlock == p.write_lock );
-    assert( (( int ) EDUMMY ) == p.write_lock( &p, valid ).status );
+    assert( EDUMMY == p.write_lock( &p, valid ).status );
     assert( 0 == p.unlock( &p ));
 
     assert( dummy_unlock == p.unlock );
