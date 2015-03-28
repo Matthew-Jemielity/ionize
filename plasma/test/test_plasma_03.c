@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h> /* sync */
 
 #define BUFSIZE 10
 #define EDUMMY 0xC0FFEEEE
@@ -32,9 +31,19 @@ static uint8_t buf[ BUFSIZE ]; /* inited to zeroes */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+typedef enum
+{
+    NONE,
+    READER,
+    WRITER
+}
+owner;
+
 struct plasma_state_struct
 {
     bool blocking;
+    uint32_t inside_critical_section;
+    owner current;
 };
 
 static ionize_status allocate(
@@ -75,48 +84,10 @@ static plasma_write trywlock(
     plasma_properties const requested
 );
 
-static ionize_status blocking( plasma * const self, bool const state )
-{
-    if(
-        ( NULL == self )
-        || ( NULL == self->state )
-    )
-    {
-        return EINVAL;
-    }
-    ( void ) pthread_mutex_lock( &mutex );
-    self->state->blocking = state;
-    self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
-    self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return 0;
-}
-
 static ionize_status dummy_unlock( plasma * const self )
 {
     UNUSED( self );
     return EINVAL;
-}
-
-static ionize_status unlock( plasma * const self )
-{
-    if(
-        ( NULL == self )
-        || ( NULL == self->state )
-    )
-    {
-        return EINVAL;
-    }
-    ( void ) pthread_mutex_lock( &mutex );
-    int const result = pthread_rwlock_unlock( &rwlock );
-    if( 0 == result )
-    {
-        self->unlock = dummy_unlock;
-        self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
-        self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
-    }
-    ( void ) pthread_mutex_unlock( &mutex );
-    return result;
 }
 
 /*
@@ -154,6 +125,81 @@ static plasma_write dummy_wlock(
     };
 }
 
+static ionize_status blocking( plasma * const self, bool const state )
+{
+    if(
+        ( NULL == self )
+        || ( NULL == self->state )
+    )
+    {
+        return EINVAL;
+    }
+    ( void ) pthread_mutex_lock( &mutex );
+    self->state->blocking = state;
+    switch( self->state->current )
+    {
+        case NONE:
+        {
+            self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            break;
+        }
+        case READER:
+        {
+            self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            self->write_lock = dummy_wlock;
+            break;
+        }
+        case WRITER:
+        {
+            self->read_lock = dummy_rlock;
+            self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            break;
+        }
+        default:
+        {
+            ( void ) pthread_mutex_unlock( &mutex );
+            return EINVAL;
+        }
+    }
+    ( void ) pthread_mutex_unlock( &mutex );
+    return 0;
+}
+
+static ionize_status unlock( plasma * const self )
+{
+    if(
+        ( NULL == self )
+        || ( NULL == self->state )
+    )
+    {
+        return EINVAL;
+    }
+    ( void ) pthread_mutex_lock( &mutex );
+    int const result = pthread_rwlock_unlock( &rwlock );
+    if( 0 == result )
+    {
+        --( self->state->inside_critical_section );
+        if( 0U == self->state->inside_critical_section )
+        {
+            self->state->current = NONE;
+            self->unlock = dummy_unlock;
+            if( dummy_rlock == self->read_lock )
+            {
+                /* writer quit, can read */
+                self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            }
+            if( dummy_wlock == self->write_lock )
+            {
+                /* all readers quit, can write */
+                self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            }
+        }
+    }
+    ( void ) pthread_mutex_unlock( &mutex );
+    return result;
+}
+
 static plasma_read tryrlock(
     plasma * const self,
     plasma_properties const requested
@@ -185,10 +231,11 @@ static plasma_read tryrlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = READER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
-        self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
     ( void ) pthread_mutex_unlock( &mutex );
@@ -226,10 +273,11 @@ static plasma_read rlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = READER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
-        self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
     ( void ) pthread_mutex_unlock( &mutex );
@@ -267,6 +315,8 @@ static plasma_write trywlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = WRITER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
@@ -308,6 +358,8 @@ static plasma_write wlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = WRITER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
@@ -334,23 +386,6 @@ static plasma * pp;
 
 ionize_status autotest_allocate( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     switch( rand() % 2 )
     {
         case 0:
@@ -396,23 +431,6 @@ ionize_status autotest_allocate( void )
 
 ionize_status autotest_read( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     switch( rand() % 2 )
     {
         case 0:
@@ -460,23 +478,6 @@ ionize_status autotest_read( void )
 
 ionize_status autotest_write( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     switch( rand() % 2 )
     {
         case 0:
@@ -524,23 +525,6 @@ ionize_status autotest_write( void )
 
 ionize_status autotest_unlock( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     ionize_status const result = pp->unlock( pp );
     printf(
         "[%s] status = %d\n",
@@ -552,23 +536,6 @@ ionize_status autotest_unlock( void )
 
 ionize_status autotest_blocking( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     switch( rand() % 2 )
     {
         case 0:
@@ -601,23 +568,6 @@ ionize_status autotest_blocking( void )
 
 ionize_status autotest_uid( void )
 {
-    if( pp->state->blocking )
-    {
-        assert(
-            ( dummy_rlock == pp->read_lock )
-            || ( rlock == pp->read_lock )
-        );
-        assert(
-            ( dummy_wlock == pp->write_lock )
-            || ( wlock == pp->write_lock )
-        );
-    }
-    else
-    {
-        assert( tryrlock == pp->read_lock );
-        assert( trywlock == pp->write_lock );
-    }
-
     plasma_uid const result = pp->uid( pp );
     printf(
         "[%s]: status = %d, uid = %"PRIu32"\n",
@@ -640,7 +590,7 @@ int main( int argc, char ** args )
     UNUSED( argc );
     UNUSED( args );
 
-    plasma_state state = { true };
+    plasma_state state = { true, 0, NONE };
     plasma p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
 
     pp = &p;
@@ -658,7 +608,7 @@ int main( int argc, char ** args )
     {
         size_t test = rand() % testsize;
         ionize_status const result = ( tests[ test ] )();
-        sync();
+        fflush( stdout );
         switch( result )
         {
             case 0:

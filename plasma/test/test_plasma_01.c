@@ -26,9 +26,19 @@ static uint8_t buf[ BUFSIZE ]; /* inited to zeroes */
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+typedef enum
+{
+    NONE,
+    READER,
+    WRITER
+}
+owner;
+
 struct plasma_state_struct
 {
     bool blocking;
+    uint32_t inside_critical_section;
+    owner current;
 };
 
 static ionize_status allocate(
@@ -69,48 +79,10 @@ static plasma_write trywlock(
     plasma_properties const requested
 );
 
-static ionize_status blocking( plasma * const self, bool const state )
-{
-    if(
-        ( NULL == self )
-        || ( NULL == self->state )
-    )
-    {
-        return EINVAL;
-    }
-    ( void ) pthread_mutex_lock( &mutex );
-    self->state->blocking = state;
-    self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
-    self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
-    ( void ) pthread_mutex_unlock( &mutex );
-    return 0;
-}
-
 static ionize_status dummy_unlock( plasma * const self )
 {
     UNUSED( self );
     return EINVAL;
-}
-
-static ionize_status unlock( plasma * const self )
-{
-    if(
-        ( NULL == self )
-        || ( NULL == self->state )
-    )
-    {
-        return EINVAL;
-    }
-    ( void ) pthread_mutex_lock( &mutex );
-    int const result = pthread_rwlock_unlock( &rwlock );
-    if( 0 == result )
-    {
-        self->unlock = dummy_unlock;
-        self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
-        self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
-    }
-    ( void ) pthread_mutex_unlock( &mutex );
-    return result;
 }
 
 /*
@@ -148,6 +120,81 @@ static plasma_write dummy_wlock(
     };
 }
 
+static ionize_status blocking( plasma * const self, bool const state )
+{
+    if(
+        ( NULL == self )
+        || ( NULL == self->state )
+    )
+    {
+        return EINVAL;
+    }
+    ( void ) pthread_mutex_lock( &mutex );
+    self->state->blocking = state;
+    switch( self->state->current )
+    {
+        case NONE:
+        {
+            self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            break;
+        }
+        case READER:
+        {
+            self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            self->write_lock = dummy_wlock;
+            break;
+        }
+        case WRITER:
+        {
+            self->read_lock = dummy_rlock;
+            self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            break;
+        }
+        default:
+        {
+            ( void ) pthread_mutex_unlock( &mutex );
+            return EINVAL;
+        }
+    }
+    ( void ) pthread_mutex_unlock( &mutex );
+    return 0;
+}
+
+static ionize_status unlock( plasma * const self )
+{
+    if(
+        ( NULL == self )
+        || ( NULL == self->state )
+    )
+    {
+        return EINVAL;
+    }
+    ( void ) pthread_mutex_lock( &mutex );
+    int const result = pthread_rwlock_unlock( &rwlock );
+    if( 0 == result )
+    {
+        --( self->state->inside_critical_section );
+        if( 0U == self->state->inside_critical_section )
+        {
+            self->state->current = NONE;
+            self->unlock = dummy_unlock;
+            if( dummy_rlock == self->read_lock )
+            {
+                /* writer quit, can read */
+                self->read_lock = ( self->state->blocking ) ? rlock : tryrlock;
+            }
+            if( dummy_wlock == self->write_lock )
+            {
+                /* all readers quit, can write */
+                self->write_lock = ( self->state->blocking ) ? wlock : trywlock;
+            }
+        }
+    }
+    ( void ) pthread_mutex_unlock( &mutex );
+    return result;
+}
+
 static plasma_read tryrlock(
     plasma * const self,
     plasma_properties const requested
@@ -179,10 +226,11 @@ static plasma_read tryrlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = READER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
-        self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
     ( void ) pthread_mutex_unlock( &mutex );
@@ -220,10 +268,11 @@ static plasma_read rlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = READER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
-        self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
     ( void ) pthread_mutex_unlock( &mutex );
@@ -261,6 +310,8 @@ static plasma_write trywlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = WRITER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
@@ -302,6 +353,8 @@ static plasma_write wlock(
         ( void ) pthread_mutex_unlock( &mutex );
         return res;
     }
+    self->state->current = WRITER;
+    ++( self->state->inside_critical_section );
     self->unlock = unlock;
     if( self->state->blocking )
     {
@@ -327,7 +380,7 @@ int main( int argc, char ** args )
     UNUSED( argc );
     UNUSED( args );
 
-    plasma_state state = { true };
+    plasma_state state = { true, 0, NONE };
     plasma p = { &state, allocate, rlock, wlock, dummy_unlock, blocking, uid };
 
     plasma_properties const invalid = { 0U, 0U, 0U };
@@ -345,38 +398,38 @@ int main( int argc, char ** args )
     assert( EBUSY == p.write_lock( &p, valid ).status );
     assert( 0 == p.unlock( &p ));
 
-    assert( 0 != p.allocate( &p, ( plasma_properties[] ) {
+    assert( EINVAL == p.allocate( &p, ( plasma_properties[] ) {
                 { 2U, 3U, 4U },
                 { BUFSIZE, BUFSIZE - 1, 0U }
     }, 2U ));
-    assert( 0 != p.allocate( NULL, NULL, 0U ));
-    assert( 0 != p.allocate( &p,
+    assert( EINVAL == p.allocate( NULL, NULL, 0U ));
+    assert( EINVAL == p.allocate( &p,
                 ( plasma_properties[] ) { { 1U, 1U, 1U } }, 1U ));
     assert( 0 == p.allocate( &p,
                 ( plasma_properties[] ) { { BUFSIZE, BUFSIZE, 1U } }, 1U ));
 
-    assert( 0 != p.unlock( &p ));
+    assert( EINVAL == p.unlock( &p ));
     assert( dummy_unlock == p.unlock );
 
     plasma_write wr;
-    assert( 0 != p.write_lock( NULL, valid ).status );
+    assert( EINVAL == p.write_lock( NULL, valid ).status );
     assert( 0 == ( wr = p.write_lock( &p, valid )).status );
     assert( BUFSIZE == wr.buf.size );
     (( char * )( wr.buf.data ))[ 1 ] = 42;
     assert( unlock == p.unlock );
-    assert( 0 != p.unlock( NULL ));
+    assert( EINVAL == p.unlock( NULL ));
 
     assert( 0 == p.blocking( &p, false ));
-    assert( tryrlock == p.read_lock );
-    assert( EBUSY == p.read_lock( &p, valid ).status );
+    assert( dummy_rlock == p.read_lock );
+    assert( (( int ) EDUMMY ) == p.read_lock( &p, valid ).status );
     assert( 0 == p.blocking( &p, true ));
 
     assert( 0 == p.unlock( &p ));
     assert( dummy_unlock == p.unlock );
 
     plasma_read rr;
-    assert( 0 != p.read_lock( NULL, valid ).status );
-    assert( 0 != ( rr = p.read_lock( &p, invalid )).status );
+    assert( EINVAL == p.read_lock( NULL, valid ).status );
+    assert( EINVAL == ( rr = p.read_lock( &p, invalid )).status );
     assert( 0 == ( rr = p.read_lock( &p, valid )).status );
     assert( BUFSIZE == rr.buf.size );
     assert( 42 == (( char * )( rr.buf.data ))[ 1 ] );
@@ -410,11 +463,28 @@ int main( int argc, char ** args )
     /* multiple readers are allowed */
     assert( 0 == p.read_lock( &p, valid ).status );
     assert( 0 == p.unlock( &p ));
+    assert( unlock == p.unlock ); /* still have to unlock */
+    assert( 0 == p.unlock( &p ));
 
     assert( 0 == p.blocking( &p, true ));
     assert( 0 == p.read_lock( &p, valid ).status );
-    assert( (( int ) EDUMMY ) == p.read_lock( &p, valid ).status );
+    assert( 0 == p.read_lock( &p, valid ).status );
     assert( 0 == p.unlock( &p ));
+    assert( 0 == p.unlock( &p ));
+
+    assert( EINVAL == p.unlock( &p ));
+    assert( 0 == p.blocking( &p, false ));
+    assert( 0 == p.read_lock( &p, valid ).status );
+    assert( trywlock == p.write_lock );
+    assert( 0 == p.read_lock( &p, valid ).status );
+    assert( 0 == p.unlock( &p ));
+    assert( trywlock == p.write_lock );
+    assert( 0 == p.blocking( &p, true ));
+    assert( dummy_wlock == p.write_lock );
+    assert( (( int ) EDUMMY ) == p.write_lock( &p, valid ).status );
+    assert( 0 == p.unlock( &p ));
+
+    assert( dummy_unlock == p.unlock );
 
     return 0;
 }
