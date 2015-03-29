@@ -11,8 +11,10 @@
  * compatible with errno type. Compatibility means functions like
  * strerror() can be used on error codes returned by project libraries.
  **/
+
 #ifndef IONIZE_ERROR_H__
 # define IONIZE_ERROR_H__
+
 # include <errno.h>
 
 /**

@@ -7,6 +7,7 @@
  *
  *
  **/
+
 #define __STDC_FORMAT_MACROS
 
 #include <assert.h>
@@ -17,9 +18,9 @@
 
 int main( int argc, char ** args )
 {
-    ( void ) argc;
-    ( void ) args;
-    
+    UNUSED( argc );
+    UNUSED( args );
+
     uint16_t const port = ionize_port();
     assert( 1023U < port );
     assert( port < UINT16_MAX );

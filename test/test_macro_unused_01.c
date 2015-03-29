@@ -7,6 +7,7 @@
  *
  * Test should be compiled with -std=c11 -Wall -Wextra -pedantic -Werror
  **/
+
 #include <ionize/universal.h>
 
 int main( int argc, char ** args )

@@ -129,7 +129,7 @@ static ionize_status blocking( plasma * const self, bool const state )
     {
         return EINVAL;
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     self->state->blocking = state;
     switch( self->state->current )
     {
@@ -153,11 +153,11 @@ static ionize_status blocking( plasma * const self, bool const state )
         }
         default:
         {
-            ( void ) pthread_mutex_unlock( &mutex );
+            UNUSED( pthread_mutex_unlock( &mutex ));
             return EINVAL;
         }
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return 0;
 }
 
@@ -170,7 +170,7 @@ static ionize_status unlock( plasma * const self )
     {
         return EINVAL;
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_unlock( &rwlock );
     if( 0 == result )
     {
@@ -191,7 +191,7 @@ static ionize_status unlock( plasma * const self )
             }
         }
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return result;
 }
 
@@ -214,7 +214,7 @@ static plasma_read tryrlock(
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_tryrdlock( &rwlock );
     plasma_read const res = ( plasma_read )
         {
@@ -223,7 +223,7 @@ static plasma_read tryrlock(
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->state->current = READER;
@@ -233,7 +233,7 @@ static plasma_read tryrlock(
     {
         self->write_lock = dummy_wlock;
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
@@ -256,7 +256,7 @@ static plasma_read rlock(
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_rdlock( &rwlock );
     plasma_read const res = ( plasma_read )
         {
@@ -265,7 +265,7 @@ static plasma_read rlock(
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->state->current = READER;
@@ -275,7 +275,7 @@ static plasma_read rlock(
     {
         self->write_lock = dummy_wlock;
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return ( plasma_read ) { 0, { buf, BUFSIZE } };
 }
 
@@ -298,7 +298,7 @@ static plasma_write trywlock(
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_trywrlock( &rwlock );
     plasma_write const res = ( plasma_write )
         {
@@ -307,7 +307,7 @@ static plasma_write trywlock(
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->state->current = WRITER;
@@ -318,7 +318,7 @@ static plasma_write trywlock(
         self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 
@@ -341,7 +341,7 @@ static plasma_write wlock(
             { NULL, 0 }
         };
     }
-    ( void ) pthread_mutex_lock( &mutex );
+    UNUSED( pthread_mutex_lock( &mutex ));
     int const result = pthread_rwlock_wrlock( &rwlock );
     plasma_write const res = ( plasma_write )
         {
@@ -350,7 +350,7 @@ static plasma_write wlock(
         };
     if( 0 != result )
     {
-        ( void ) pthread_mutex_unlock( &mutex );
+        UNUSED( pthread_mutex_unlock( &mutex ));
         return res;
     }
     self->state->current = WRITER;
@@ -361,7 +361,7 @@ static plasma_write wlock(
         self->read_lock = dummy_rlock;
         self->write_lock = dummy_wlock;
     }
-    ( void ) pthread_mutex_unlock( &mutex );
+    UNUSED( pthread_mutex_unlock( &mutex ));
     return ( plasma_write ) { 0, { buf, BUFSIZE } };
 }
 

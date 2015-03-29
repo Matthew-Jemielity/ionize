@@ -7,6 +7,7 @@
  *
  * Describes everything a client needs to know about filament.
  **/
+
 #ifndef FILAMENT_FILAMENT_H__
 # define FILAMENT_FILAMENT_H__
 
