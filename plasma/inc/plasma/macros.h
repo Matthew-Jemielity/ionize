@@ -18,8 +18,9 @@
  * PP_NARG() will return 0. Macro can be used for more preprocessor magic.
  * Implementation gleaned from the wizards at Stack Overflow:
  * stackoverflow.com/questions/11317474/macro-to-count-number-of-arguments
+ *
+ * @{
  */
-/**@{*/
 # define PP_ARG_N( _1, _2, _3, N, ... ) N
 # define PP_RSEQ_N 3, 2, 1, 0
 # define PP_NARG_( ... ) PP_ARG_N( __VA_ARGS__ )

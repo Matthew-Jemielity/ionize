@@ -24,6 +24,15 @@
 # define UNUSED( VAR ) (( void ) ( VAR ))
 
 /**
+ * \brief Specifies that a method shouldn't be used directly.
+ *
+ * This macro is currently a no-op. It signifies that a method wasn't designed
+ * to be used directly and that there are legitimate wrappers that should be
+ * used instead.
+ */
+# define INDIRECT
+
+/**
  * \brief Describes port used in the client <-> server architecture.
  * \return Port number.
  *

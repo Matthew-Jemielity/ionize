@@ -40,6 +40,7 @@ typedef struct plasma_struct plasma;
  * space is added to the back of circular queue managed by the service.
  * This method blocks until service returns status of the allocation
  * to the client.
+ * TODO: error codes.
  */
 typedef ionize_status ( * plasma_allocate_func )(
     plasma * const restrict self,
@@ -81,6 +82,7 @@ plasma_read;
  * until a buffer is available or return with status EAGAIN. Note that
  * the method will always block for the amount of time needed for backend
  * service to communicate with the client.
+ * TODO: error codes.
  */
 typedef plasma_read ( * plasma_read_lock_func )(
     plasma * const self,
@@ -121,6 +123,7 @@ plasma_write;
  * until a buffer is available or return with status EAGAIN. Note that
  * the method will always block for the amount of time needed for backend
  * service to communicate with the client.
+ * TODO: error codes.
  */
 typedef plasma_write ( * plasma_write_lock_func )(
     plasma * const self,
@@ -134,6 +137,7 @@ typedef plasma_write ( * plasma_write_lock_func )(
  *
  * This method will block for amount of time needed for backend service to
  * communicate with the client.
+ * TODO: error codes.
  */
 typedef ionize_status ( * plasma_unlock_func )( plasma * const self );
 
@@ -146,12 +150,13 @@ typedef ionize_status ( * plasma_unlock_func )( plasma * const self );
  *          has been called is an undefined behavior.
  *
  * Buffer locks can operate in two modes:
- * - blocking - if there is lock contention and no other buffer is available
+ * 1. blocking - if there is lock contention and no other buffer is available
  *              then the lock operation will wait;
- * - non-blocking - in above case the operation will return with error.
+ * 2. non-blocking - in above case the operation will return with error.
  * Changing the mode will only work for new lock requests.
  * This is a method local to the client, it doesn't communicate with backend
  * service.
+ * TODO: error codes.
  */
 typedef ionize_status ( * plasma_blocking_func )(
     plasma * const self,
@@ -180,6 +185,7 @@ plasma_uid;
  * local to the plasma object instance and not synchronized.
  * This method will not contact the backend service, it is local to
  * the client.
+ * TODO: error codes.
  */
 typedef plasma_uid ( * plasma_uid_func )( plasma * const self );
 
