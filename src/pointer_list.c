@@ -80,6 +80,10 @@ static ionize_status foreach(
     {
         return EINVAL;
     }
+    if( NULL == callback )
+    {
+        return ENOEXEC;
+    }
 
     ionize_status result = ENODATA;
     for(

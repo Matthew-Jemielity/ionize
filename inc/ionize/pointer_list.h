@@ -81,6 +81,7 @@ typedef ionize_status ( * ionize_pointer_list_foreach_callback )(
  * (zero).
  * Possible error codes:
  * 1. EINVAL - invalid ionize_pointer_list object given;
+ * 2. ENOEXEC - passed callback is NULL;
  * 2. ENODATA - the list is empty;
  * 3. any error codee returned by the callback.
  */
