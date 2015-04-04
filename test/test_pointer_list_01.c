@@ -14,6 +14,14 @@
 #include <ionize/pointer_list.h>
 #include <ionize/universal.h>
 #include <stddef.h>
+#include <stdio.h>
+
+ionize_status callback( void * const pointer, void * const userdata )
+{
+    assert( NULL == userdata );
+    printf( "%p\n", pointer );
+    return 0;
+}
 
 int main( int argc, char * args[] )
 {
@@ -35,6 +43,7 @@ int main( int argc, char * args[] )
     assert( 0 == list.add( &list, NULL ));
     assert( 0 == list.remove( &list, NULL ));
     assert( 0 == list.add( &list, NULL ));
+    assert( 0 == list.foreach( &list, callback, NULL ));
     assert( 0 == list.remove( &list, &data ));
     assert( NULL == list.head->pointer );
     assert( 0 == list.add( &list, &data ));

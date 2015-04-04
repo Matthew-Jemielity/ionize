@@ -70,13 +70,41 @@ remove( ionize_pointer_list * const self, void * const pointer )
     return ENODATA;
 }
 
+static ionize_status foreach(
+    ionize_pointer_list * const self,
+    ionize_pointer_list_foreach_callback const callback,
+    void * const userdata
+)
+{
+    if( NULL == self )
+    {
+        return EINVAL;
+    }
+
+    ionize_status result = ENODATA;
+    for(
+        ionize_pointer_list_element * current = self->head;
+        current != NULL;
+        current = current->next
+    )
+    {
+        result = callback( current->pointer, userdata );
+        if( 0 != result )
+        {
+            break;
+        }
+    }
+    return result;
+}
+
 ionize_pointer_list ionize_pointer_list_setup( void )
 {
     return ( ionize_pointer_list )
     {
         .head = NULL,
         .add = add,
-        .remove = remove
+        .remove = remove,
+        .foreach = foreach
     };
 }
 
