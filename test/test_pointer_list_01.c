@@ -33,9 +33,8 @@ int main( int argc, char * args[] )
 
     assert( NULL == list.head );
     assert( ENODATA == list.remove( &list, NULL ));
-    assert( ENODATA == list.foreach( &list, callback, NULL ));
-    assert( ENOEXEC == list.foreach( &list, NULL, NULL ));
-    assert( EINVAL == list.foreach( NULL, NULL, NULL ));
+    assert( ENODATA == list.foreach( list, callback, NULL ));
+    assert( ENOEXEC == list.foreach( list, NULL, NULL ));
     assert( EINVAL == ionize_pointer_list_cleanup( NULL ));
     assert( 0 == ionize_pointer_list_cleanup( &list ));
     assert( 0 == list.add( &list, &data ));
@@ -46,7 +45,7 @@ int main( int argc, char * args[] )
     assert( 0 == list.add( &list, NULL ));
     assert( 0 == list.remove( &list, NULL ));
     assert( 0 == list.add( &list, NULL ));
-    assert( 0 == list.foreach( &list, callback, NULL ));
+    assert( 0 == list.foreach( list, callback, NULL ));
     assert( 0 == list.remove( &list, &data ));
     assert( NULL == list.head->pointer );
     assert( 0 == list.add( &list, &data ));

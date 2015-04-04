@@ -71,15 +71,11 @@ remove( ionize_pointer_list * const self, void * const pointer )
 }
 
 static ionize_status foreach(
-    ionize_pointer_list * const self,
+    ionize_pointer_list const self,
     ionize_pointer_list_foreach_callback const callback,
     void * const userdata
 )
 {
-    if( NULL == self )
-    {
-        return EINVAL;
-    }
     if( NULL == callback )
     {
         return ENOEXEC;
@@ -87,7 +83,7 @@ static ionize_status foreach(
 
     ionize_status result = ENODATA;
     for(
-        ionize_pointer_list_element * current = self->head;
+        ionize_pointer_list_element * current = self.head;
         current != NULL;
         current = current->next
     )

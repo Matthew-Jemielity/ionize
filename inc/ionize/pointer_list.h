@@ -80,13 +80,12 @@ typedef ionize_status ( * ionize_pointer_list_foreach_callback )(
  * Iteration will continue as long as callbacks return successful status
  * (zero).
  * Possible error codes:
- * 1. EINVAL - invalid ionize_pointer_list object given;
- * 2. ENOEXEC - passed callback is NULL;
+ * 1. ENOEXEC - passed callback is NULL;
  * 2. ENODATA - the list is empty;
  * 3. any error codee returned by the callback.
  */
 typedef ionize_status ( * ionize_pointer_list_foreach_func )(
-    ionize_pointer_list * const self,
+    ionize_pointer_list const self,
     ionize_pointer_list_foreach_callback const callback,
     void * const userdata
 );
@@ -120,6 +119,7 @@ ionize_pointer_list ionize_pointer_list_setup( void );
  * \brief Deinitializes and frees ionize_pointer_list.
  * \param list Pointer to ionize_pointer_list to cleanup.
  * \return Zero on success, else error code.
+ * \warning User is responsible to safely free (if needed) list pointers.
  *
  * The error codes returned can be:
  * 1. EINVAL if inbalid argument is given;
