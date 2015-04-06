@@ -14,6 +14,12 @@
 # include <ionize/log.h>
 # include <stdarg.h> /* va_list */
 
+/**
+ * \brief Prints log to stderr.
+ * \param level Log level (unused).
+ * \param format Format string, like in printf.
+ * \param args Variable argument list, like in vprintf.
+ */
 void ionize_log_stderr(
     ionize_log_level const level,
     char const * const format,

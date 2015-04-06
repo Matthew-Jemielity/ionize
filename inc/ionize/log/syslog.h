@@ -14,6 +14,13 @@
 # include <ionize/log.h>
 # include <stdarg.h> /* va_list */
 
+/**
+ * \brief Prints log to default syslog facility.
+ * \param level Log level.
+ * \param format Format string, like in printf.
+ * \param args Variable arguemnt list, like in vprintf.
+ * \notice syslog's identifier is "ionize".
+ */
 void ionize_log_syslog(
     ionize_log_level const level,
     char const * const format,

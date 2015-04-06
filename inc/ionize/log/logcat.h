@@ -14,6 +14,13 @@
 # include <ionize/log.h>
 # include <stdarg.h> /* va_list */
 
+/**
+ * \brief Prints message to Android's logcat.
+ * \param level Message log level.
+ * \param format Format string, like in printf.
+ * \param args Variable arguments list, like in vprintf.
+ * \notice Logcat tag is "ionize".
+ */
 void ionize_log_logcat(
     ionize_log_level const level,
     char const * const format,
