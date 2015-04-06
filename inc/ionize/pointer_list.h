@@ -82,7 +82,7 @@ typedef ionize_status ( * ionize_pointer_list_foreach_callback )(
  * Possible error codes:
  * 1. ENOEXEC - passed callback is NULL;
  * 2. ENODATA - the list is empty;
- * 3. any error codee returned by the callback.
+ * 3. any error code returned by the callback.
  */
 typedef ionize_status ( * ionize_pointer_list_foreach_func )(
     ionize_pointer_list const self,
@@ -102,9 +102,9 @@ typedef ionize_status ( * ionize_pointer_list_foreach_func )(
 struct ionize_pointer_list_struct
 {
     ionize_pointer_list_element * head; /** Pointer to first list element */
-    ionize_pointer_list_func const add; /** Adds pointer to the list. */
-    ionize_pointer_list_func const remove; /** Removes existing pointer. */
-    ionize_pointer_list_foreach_func const foreach; /** Iterator. */
+    ionize_pointer_list_func add; /** Adds pointer to the list. */
+    ionize_pointer_list_func remove; /** Removes existing pointer. */
+    ionize_pointer_list_foreach_func foreach; /** Iterator. */
 };
 
 /**
@@ -122,7 +122,7 @@ ionize_pointer_list ionize_pointer_list_setup( void );
  * \warning User is responsible to safely free (if needed) list pointers.
  *
  * The error codes returned can be:
- * 1. EINVAL if inbalid argument is given;
+ * 1. EINVAL if invalid argument is given;
  * 2. the same as returned by list element removal method.
  * After the method successfully returns, the list head will be NULL.
  */

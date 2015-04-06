@@ -41,8 +41,8 @@ typedef struct ionize_mutex_state_struct ionize_mutex_state;
 struct ionize_mutex_struct
 {
     ionize_mutex_state * state; /** Object's state */
-    ionize_mutex_func const lock; /** Mutex locking method. */
-    ionize_mutex_func const unlock; /** Mutex unlocking method. */
+    ionize_mutex_func lock; /** Mutex locking method. */
+    ionize_mutex_func unlock; /** Mutex unlocking method. */
 };
 
 /**

@@ -37,6 +37,14 @@
 # endif /* __STDC_NO_THREADS__ */
 
 /**
+ * \brief Specifies that a method is not thread-safe.
+ *
+ * Currently a no-op. Signifies that method wasn't designed to be thread-safe
+ * (for example it uses static variables).
+ */
+# define THREADUNSAFE
+
+/**
  * \brief Specifies that variable is not used in a compiler-friendly way.
  *
  * We want our code to compile cleanly even with gcc's -pedantic flag. This
