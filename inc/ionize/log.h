@@ -14,6 +14,7 @@
 # define __STDC_FORMAT_MACROS /* needed for PRIu64 */
 
 # include <inttypes.h> /* PRIu64 */
+# include <ionize/error.h> /* ionize_status */
 # include <ionize/universal.h> /* THREADUNSAFE */
 # include <stdarg.h> /* va_list */
 # include <stdint.h> /* uint64_t */
@@ -34,8 +35,8 @@ ionize_log_level;
  * \brief Returns current time, as measured from some arbitrary point.
  * \return Time in nanoseconds, with at least millisecond precision.
  *
- * The time reported here is guaranteed to be monotonic, but not guaranteed
- * to be equal to the wall clock time.
+ * The time reported here is equal to the wall clock time, thus it's affected
+ * by jumps resulting from changing the wall clock time.
  */
 INDIRECT uint64_t ionize_log_time( void );
 
@@ -86,10 +87,10 @@ ionize_log( ionize_log_level const level, char const * const format, ... );
  *
  * @{
  */
-# define IONIZE_ERROR( ... ) IONIZE_LOG( ERROR, __VA_ARGS__ )
-# define IONIZE_WARNING( ... ) IONIZE_LOG( WARNING, __VA_ARGS__ )
-# define IONIZE_INFO( ... ) IONIZE_LOG( INFO, __VA_ARGS__ )
-# define IONIZE_DEBUG( ... ) IONIZE_LOG( DEBUG, __VA_ARGS__ )
+# define IONIZE_ERROR( ... ) IONIZE_LOG__( ERROR, __VA_ARGS__ )
+# define IONIZE_WARNING( ... ) IONIZE_LOG__( WARNING, __VA_ARGS__ )
+# define IONIZE_INFO( ... ) IONIZE_LOG__( INFO, __VA_ARGS__ )
+# define IONIZE_DEBUG( ... ) IONIZE_LOG__( DEBUG, __VA_ARGS__ )
 /**@}*/
 
 /**

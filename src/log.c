@@ -8,6 +8,8 @@
  *
  **/
 
+#define _POSIX_C_SOURCE 199309L /* for clock_gettime */
+
 #include <assert.h>
 #include <errno.h> /* EALREADY, EINVAL, etc. */
 #include <ionize/error.h> /* ionize_status */
@@ -17,8 +19,14 @@
 #include <ionize/universal.h> /* THREADLOCAL, THREADUNSAFE, UNUSED */
 #include <stdbool.h> /* bool */
 #include <stddef.h> /* NULL */
+#include <stdint.h> /* uint64_t */
 #include <stdlib.h> /* malloc, free */
 #include <string.h> /* memcpy */
+#include <time.h> /* clock_gettime, struct timespec */
+
+#define NANOSECONDS_IN_MICROSECOND 1000
+#define MICROSECONDS_IN_MILLISECOND 1000
+#define MILLISECONDS_IN_SECOND 1000
 
 struct ionize_log_obj_state_struct
 {
@@ -26,6 +34,26 @@ struct ionize_log_obj_state_struct
     ionize_pointer_list handlers;
     ionize_mutex mutex;
 };
+
+static uint64_t
+from_timespec( struct timespec const value )
+{
+    return ( ( uint64_t ) value.tv_sec )
+        * NANOSECONDS_IN_MICROSECOND
+        * MICROSECONDS_IN_MILLISECOND
+        * MILLISECONDS_IN_SECOND
+        + ( ( uint64_t ) value.tv_nsec );
+}
+
+INDIRECT uint64_t ionize_log_time( void )
+{
+    struct timespec result;
+
+    if( 0 == clock_gettime( CLOCK_REALTIME, &result ))
+    { return from_timespec( result ); }
+
+    return 0;
+}
 
 typedef struct
 {
@@ -157,7 +185,7 @@ handler_callback( void * const pointer, void * const userdata )
 }
 
 /* uses static variable log, won't modify it, except for using mutex */
-void
+INDIRECT void
 ionize_log( ionize_log_level const level, char const * const format, ... )
 {
     if( false == log.state->initialized )
