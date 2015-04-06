@@ -62,6 +62,15 @@ typedef struct
 pointer_list_element;
 
 static ionize_status
+adding_callback( void * const pointer, void * const userdata )
+{
+    pointer_list_element const * const element = pointer;
+    pointer_list_element const * const data = userdata;
+
+    return ( element->handler == data->handler ) ? EEXIST : 0;
+}
+
+static ionize_status
 add( ionize_log_obj * const self, ionize_log_handler const handler )
 {
     if(( NULL == self ) || ( NULL == self->state ))
@@ -79,12 +88,22 @@ add( ionize_log_obj * const self, ionize_log_handler const handler )
     element->handler = handler;
 
     ionize_status result = self->state->mutex.lock( self->state->mutex );
-    if( 0 == result )
+    if( 0 != result )
+    {
+        return result;
+    }
+    result = self->state->handlers.foreach(
+            self->state->handlers,
+            adding_callback,
+            element
+        );
+    /* if handler already exists result will be EEXIST */
+    if(( 0 == result ) || ( ENODATA == result ))
     {
         result =
             self->state->handlers.add( &( self->state->handlers ), element );
-        UNUSED( self->state->mutex.unlock( self->state->mutex ));
     }
+    UNUSED( self->state->mutex.unlock( self->state->mutex ));
     return result;
 }
 

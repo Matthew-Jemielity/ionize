@@ -126,8 +126,9 @@ typedef void ( * ionize_log_handler )(
  * a) EINVAL - invalid ionize_log_obj given;
  * 2. adding handler:
  * a) ENOMEM - failed to allocate memory for handler holder structure;
- * b) codes returned by ionize_mutex locking and unlocking methods;
- * c) codes returned by ionize_pointer_list add method;
+ * b) EEXIST - handler already is on the list of handlers;
+ * c) codes returned by ionize_mutex locking and unlocking methods;
+ * d) codes returned by ionize_pointer_list add method;
  * 3. removing handler:
  * a) codes returned by ionize_mutex  locking and unlocking methods;
  * b) codes returned by ionize_pointer_list remove method.
