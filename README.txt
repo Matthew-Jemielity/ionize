@@ -1,3 +1,5 @@
+This project is a work in progress, missing makefiles and a lot of infrastrucucture.
+
 In this project:
 - plasma is a library to be used by clients,
 - ionized is daemon responsible for memory management, implementing circular buffers.
