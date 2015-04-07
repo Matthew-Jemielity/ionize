@@ -12,7 +12,7 @@
 #include <ionize/log/stderr.h>
 #include <ionize/universal.h> /* UNUSED */
 #include <stdarg.h> /* va_list */
-#include <stdio.h> /* vfprintf */
+#include <stdio.h> /* fflush, vfprintf */
 
 void ionize_log_stderr(
     ionize_log_level const level,
@@ -22,5 +22,6 @@ void ionize_log_stderr(
 {
     UNUSED( level );
     UNUSED( vfprintf( stderr, format, args ));
+    UNUSED( fflush( stderr ));
 }
 
