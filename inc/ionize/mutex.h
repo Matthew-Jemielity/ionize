@@ -25,7 +25,7 @@ typedef struct ionize_mutex_struct ionize_mutex;
  * \return Zero on success, else error code.
  *
  * Possible error codes:
- * 1. EINVAL - invalide value of self given;
+ * 1. EINVAL - invalid value of self given;
  * 2. EIO - operation failed.
  */
 typedef ionize_status ( * ionize_mutex_func )( ionize_mutex const self );
